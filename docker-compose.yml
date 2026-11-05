@@ -1,0 +1,36 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Автоматический редирект с HTTP на HTTPS
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      # Настройка выпуска SSL Let's Encrypt
+      - "--certificatesencoders.myresolver.acme.tlschallenge=true"
+      - "--certificatesencoders.myresolver.acme.email=nyuskov@gmail.com"
+      - "--certificatesencoders.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Чтобы Traefik видел контейнеры
+      - ./letsencrypt:/letsencrypt
+    restart: unless-stopped
+
+  fastapi-app:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: fastapi_app
+    volumes:
+      - .:/app
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fastapi.rule=Host(`localhost`)"
+      - "traefik.http.routers.fastapi.entrypoints=websecure"
+      - "traefik.http.routers.fastapi.tls.certresolver=myresolver"
