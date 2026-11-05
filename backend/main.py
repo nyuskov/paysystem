@@ -16,6 +16,15 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def set_secure_scheme(request, call_next):
+    # Читаем заголовок от Traefik и подменяем scheme для FastAPI
+    if request.headers.get("x-forwarded-proto") == "https":
+        request.scope["scheme"] = "https"
+    response = await call_next(request)
+    return response
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
