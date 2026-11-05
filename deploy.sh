@@ -4,9 +4,10 @@
 cleanup() {
     echo ""
     echo "🛑 Перехвачен сигнал остановки (Ctrl+C)..."
-    echo "🗑️ Удаляем контейнеры проекта..."
-    # Флаг -v удаляет связанные анонимные volumes, чтобы не засорять систему
-    docker compose down -v
+    echo "🗑️ Останавливаем контейнеры проекта..."
+    # Без -v: named volumes (node_modules, pnpm-store) сохраняем,
+    # иначе при каждом запуске зависимости ставятся заново
+    docker compose down
     echo "✅ Все контейнеры успешно остановлены и удалены."
     exit 0
 }
@@ -15,6 +16,11 @@ cleanup() {
 trap cleanup SIGINT
 
 echo "🚀 Запуск FastAPI в LIVE-режиме разработки..."
+
+# container_name в compose глобальны: если остался контейнер от прошлого запуска
+# или из другой папки, docker compose упадёт с "name is already in use".
+# Убираем такие остатки заранее (для dev это безопасно).
+docker rm -f fastapi_app nuxt_frontend traefik >/dev/null 2>&1 || true
 
 # 1. Собираем и поднимаем контейнеры в фоне
 docker compose up -d --build --force-recreate --remove-orphans
@@ -26,4 +32,4 @@ echo "🛑 Для полной остановки проекта и удален
 echo "----------------------------------------------------------------------------------------"
 
 # 2. Выводим логи. Скрипт будет «висеть» на этой строке, пока вы не нажмете Ctrl+C
-docker compose logs -f fastapi-app
+docker compose logs -f backend frontend

@@ -4,7 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 
 origins = [
-    "https://localhost:8080",
+    # dev-адреса фронта (на случай прямых запросов к API в обход Traefik)
+    "http://localhost",
+    "https://localhost",
+    "http://127.0.0.1",
+    "https://127.0.0.1",
 ]
 
 app.add_middleware(

@@ -18,7 +18,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
 
-  fastapi-app:
+  backend:
     build:
       context: .
       dockerfile: ./backend/Dockerfile
@@ -27,13 +27,53 @@ services:
       - .:/app
     labels:
       - "traefik.enable=true"
-      # HTTP (в dev — по любому адресу, включая IP сервера)
-      - "traefik.http.routers.fastapi.rule=PathPrefix(`/`)"
+      # API живёт строго под /api: фронт забирает корень
+      - "traefik.http.routers.fastapi.rule=PathPrefix(`/api`)"
       - "traefik.http.routers.fastapi.entrypoints=web"
+      - "traefik.http.routers.fastapi.priority=100"
+      # Срезаем /api перед проксированием: /api/users -> /users внутри FastAPI
+      - "traefik.http.middlewares.api-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.fastapi.middlewares=api-strip"
       # HTTPS с самоподписанным сертификатом Traefik (https://localhost)
-      - "traefik.http.routers.fastapi-secure.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.fastapi-secure.rule=PathPrefix(`/api`)"
       - "traefik.http.routers.fastapi-secure.entrypoints=websecure"
       - "traefik.http.routers.fastapi-secure.tls=true"
+      - "traefik.http.routers.fastapi-secure.priority=100"
+      - "traefik.http.routers.fastapi-secure.middlewares=api-strip"
       - "traefik.http.routers.fastapi-secure.service=fastapi"
       # Указываем Traefik внутренний порт FastAPI
       - "traefik.http.services.fastapi.loadbalancer.server.port=80"
+
+  frontend:
+    image: node:22-alpine
+    container_name: nuxt_frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      # node_modules и pnpm-store держим в named volume: не мусорим на хосте
+      - frontend_node_modules:/app/node_modules
+      - pnpm_store:/pnpm-store
+    environment:
+      # Не даём Nuxt/Vite уйти в localhost контейнера
+      - NUXT_HOST=0.0.0.0
+      - NUXT_PORT=3000
+      - CHOKIDAR_USEPOLLING=true
+    # corepack даёт pnpm без глобальной установки; esbuild требует build-скрипт
+    command: sh -c "corepack enable && pnpm config set store-dir /pnpm-store && pnpm install --allow-build=esbuild && pnpm dev --host 0.0.0.0 --port 3000"
+    labels:
+      - "traefik.enable=true"
+      # Всё остальное — Nuxt
+      - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.routers.frontend.priority=1"
+      - "traefik.http.routers.frontend-secure.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.frontend-secure.entrypoints=websecure"
+      - "traefik.http.routers.frontend-secure.tls=true"
+      - "traefik.http.routers.frontend-secure.priority=1"
+      - "traefik.http.routers.frontend-secure.service=frontend"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+    restart: unless-stopped
+
+volumes:
+  frontend_node_modules:
+  pnpm_store:

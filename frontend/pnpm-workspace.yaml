@@ -1,0 +1,7 @@
+allowBuilds:
+  esbuild: true
+# Настройки pnpm (pnpm 12 больше не читает поле "pnpm" в package.json)
+# Разрешаем esbuild выполнить свой install-скрипт, иначе pnpm падает
+# с ERR_PNPM_IGNORED_BUILDS
+onlyBuiltDependencies:
+  - esbuild
