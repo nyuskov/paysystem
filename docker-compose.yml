@@ -58,8 +58,9 @@ services:
       - NUXT_HOST=0.0.0.0
       - NUXT_PORT=3000
       - CHOKIDAR_USEPOLLING=true
-    # corepack даёт pnpm без глобальной установки; esbuild требует build-скрипт
-    command: sh -c "corepack enable && pnpm config set store-dir /pnpm-store && pnpm install --allow-build=esbuild && pnpm dev --host 0.0.0.0 --port 3000"
+    # Добавляем vue-demi через запятую в список разрешенных билдов для pnpm
+    # Разрешаем pnpm запускать скрипты всех необходимых Nuxt-зависимостей при старте контейнера
+    command: sh -c "corepack enable && pnpm config set store-dir /pnpm-store && pnpm install --dangerously-allow-all-builds && pnpm dev --host 0.0.0.0 --port 3000"
     labels:
       - "traefik.enable=true"
       # Всё остальное — Nuxt
