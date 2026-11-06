@@ -1,7 +1,5 @@
 services:
   traefik:
-    # v3.6 умеет согласовывать версию Docker API (v3.0 ходит как клиент 1.24,
-    # а Docker 29 требует минимум 1.40 — провайдер падал и роутеров не было)
     image: traefik:v3.6
     container_name: traefik
     command:
@@ -9,7 +7,6 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      # TLS по умолчанию (самоподписанный сертификат) — на случай перехода на HTTPS
       - "--entrypoints.websecure.http.tls=true"
     ports:
       - "80:80"
@@ -18,6 +15,25 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
 
+  # --- БАЗА ДАННЫХ POSTGRESQL ---
+  db:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: secret_payment_pass
+      POSTGRES_DB: payment_gate
+    volumes:
+      # Постоянное хранилище для данных БД, чтобы они не стирались при перезапуске
+      - postgres_data:/var/data/postgresql/data
+    healthcheck:
+      # Проверка готовности БД, чтобы FastAPI не падал при старте
+      test: ["CMD-SHELL", "pg_isready -U payment_user -d payment_gate"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: .
@@ -25,27 +41,28 @@ services:
     container_name: fastapi_app
     volumes:
       - .:/app
+    environment:
+      - MYPYPATH=/app/backend
+      - PYTHONPATH=/app/backend
+      # Передаем URL подключения прямо в переменные окружения бэкенда
+      - DATABASE_URL=postgresql+asyncpg://payment_user:secret_payment_pass@db:5432/payment_gate
+    depends_on:
+      db:
+        condition: service_healthy # Ждем полного запуска и успешного хелсчека БД
     labels:
       - "traefik.enable=true"
-      # API живёт строго под /api: фронт забирает корень
       - "traefik.http.routers.fastapi.rule=PathPrefix(`/api`)"
       - "traefik.http.routers.fastapi.entrypoints=web"
       - "traefik.http.routers.fastapi.priority=100"
-      # Срезаем /api перед проксированием: /api/users -> /users внутри FastAPI
       - "traefik.http.middlewares.api-strip.stripprefix.prefixes=/api"
       - "traefik.http.routers.fastapi.middlewares=api-strip"
-      # HTTPS с самоподписанным сертификатом Traefik (https://localhost)
       - "traefik.http.routers.fastapi-secure.rule=PathPrefix(`/api`)"
       - "traefik.http.routers.fastapi-secure.entrypoints=websecure"
       - "traefik.http.routers.fastapi-secure.tls=true"
       - "traefik.http.routers.fastapi-secure.priority=100"
       - "traefik.http.routers.fastapi-secure.middlewares=api-strip"
       - "traefik.http.routers.fastapi-secure.service=fastapi"
-      # Указываем Traefik внутренний порт FastAPI
       - "traefik.http.services.fastapi.loadbalancer.server.port=80"
-    environment:
-      - MYPYPATH=/app/backend
-      - PYTHONPATH=/app/backend
 
   frontend:
     image: node:22-alpine
@@ -53,22 +70,16 @@ services:
     working_dir: /app
     volumes:
       - ./frontend:/app
-      # node_modules и pnpm-store держим в named volume: не мусорим на хосте
       - frontend_node_modules:/app/node_modules
       - pnpm_store:/pnpm-store
     environment:
-      # Не даём Nuxt/Vite уйти в localhost контейнера
       - NUXT_HOST=0.0.0.0
       - NUXT_PORT=3000
       - CHOKIDAR_USEPOLLING=true
-      # Куда Nuxt проксирует /api (SSR-запросы не выходят через Traefik)
       - NUXT_API_PROXY_TARGET=http://backend:80
-    # Добавляем vue-demi через запятую в список разрешенных билдов для pnpm
-    # Разрешаем pnpm запускать скрипты всех необходимых Nuxt-зависимостей при старте контейнера
     command: sh -c "corepack enable && pnpm config set store-dir /pnpm-store && pnpm install --dangerously-allow-all-builds && pnpm dev --host 0.0.0.0 --port 3000"
     labels:
       - "traefik.enable=true"
-      # Всё остальное — Nuxt
       - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
       - "traefik.http.routers.frontend.entrypoints=web"
       - "traefik.http.routers.frontend.priority=1"
@@ -83,3 +94,4 @@ services:
 volumes:
   frontend_node_modules:
   pnpm_store:
+  postgres_data: # Объявляем новый именованный том для хранения данных Postgres

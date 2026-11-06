@@ -29,6 +29,7 @@ const { data, status } = await useFetch<User[]>("/api/customers", {
 
 definePageMeta({
   layout: "dashboard", // <- Привязываем сайдбар, который теперь в dashboard.vue
+  middleware: "auth",
 });
 
 function getRowItems(row: Row<User>) {

@@ -43,6 +43,7 @@ const isMailPanelOpen = computed({
 
 definePageMeta({
   layout: "dashboard", // <- Привязываем сайдбар, который теперь в dashboard.vue
+  middleware: "auth",
 });
 
 // Reset selected mail if it's not in the filtered mails

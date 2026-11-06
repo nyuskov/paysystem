@@ -28,7 +28,7 @@ definePageMeta({
           size="xl"
           color="neutral"
           variant="solid"
-          to="/customers"
+          to="/login"
         />
       </div>
     </UContainer>

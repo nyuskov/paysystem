@@ -1,6 +1,14 @@
+<script setup>
+const { fetchUser, token } = useAuth();
+
+// Если в куках есть токен, восстанавливаем профиль пользователя до рендеринга страниц
+if (token.value) {
+  await fetchUser();
+}
+</script>
+
 <template>
   <div>
-    <!-- Этот тег автоматически подставит нужный макет (default для лендинга, dashboard для админки) -->
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>

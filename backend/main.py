@@ -1,8 +1,8 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api import router as api_router
-
-app = FastAPI()
+from models.user import Base, engine
 
 origins = [
     # dev-адреса фронта (на случай прямых запросов к API в обход Traefik)
@@ -11,6 +11,17 @@ origins = [
     "http://127.0.0.1",
     "https://127.0.0.1",
 ]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # При старте контейнера автоматически создаем таблицы в Postgres, если их нет
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+
+app = FastAPI(title="Payment Gate API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

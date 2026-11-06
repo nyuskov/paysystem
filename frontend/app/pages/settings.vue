@@ -37,6 +37,7 @@ const links = [
 
 definePageMeta({
   layout: "dashboard", // <- Привязываем сайдбар, который теперь в dashboard.vue
+  middleware: "auth",
 });
 </script>
 
