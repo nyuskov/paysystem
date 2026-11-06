@@ -1,69 +1,103 @@
-<script setup lang="ts">
-import { sub } from 'date-fns'
-import type { DropdownMenuItem } from '@nuxt/ui'
-import type { Period, Range } from '~/types'
-
-const { isNotificationsSlideoverOpen } = useDashboard()
-
-const items = [[{
-  label: 'New mail',
-  icon: 'i-lucide-send',
-  to: '/inbox'
-}, {
-  label: 'New customer',
-  icon: 'i-lucide-user-plus',
-  to: '/customers'
-}]] satisfies DropdownMenuItem[][]
-
-const range = shallowRef<Range>({
-  start: sub(new Date(), { days: 14 }),
-  end: new Date()
-})
-const period = ref<Period>('daily')
+<script setup>
+definePageMeta({
+  layout: "default",
+});
 </script>
 
 <template>
-  <UDashboardPanel id="home">
-    <template #header>
-      <UDashboardNavbar title="Home" :ui="{ right: 'gap-3' }">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+  <div class="saas-landing-page">
+    <!-- В v4 Hero-блок собирается из базовых компонентов -->
+    <UContainer class="max-w-3xl mx-auto text-center">
+      <h1
+        class="text-5xl font-bold tracking-tight text-neutral-900 dark:text-white sm:text-6xl"
+      >
+        Принимайте платежи по всему миру
+      </h1>
+      <p class="mt-6 text-lg leading-8 text-neutral-600 dark:text-neutral-400">
+        Интеграция шлюза за 15 минут. Поддержка карт, СБП и криптовалют без
+        скрытых комиссий.
+      </p>
+      <div class="mt-10 flex items-center justify-center gap-x-6">
+        <UButton
+          label="Войти в личный кабинет"
+          size="xl"
+          color="neutral"
+          variant="solid"
+          to="/customers"
+        />
+      </div>
+    </UContainer>
 
-        <template #right>
-          <UTooltip text="Notifications" :kbds="['n']">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              square
-              @click="isNotificationsSlideoverOpen = true"
+    <!-- Сетка карточек преимуществ (В v4 используются обычные UCard) -->
+    <UContainer class="mt-24 max-w-5xl mx-auto">
+      <div class="grid grid-cols-1 gap-8 sm:grid-cols-3 text-left">
+        <UCard>
+          <template #header>
+            <div
+              class="flex items-center gap-x-3 font-semibold text-neutral-900 dark:text-white"
             >
-              <UChip color="error" inset>
-                <UIcon name="i-lucide-bell" class="size-5 shrink-0" />
-              </UChip>
-            </UButton>
-          </UTooltip>
+              <UIcon
+                name="i-lucide-shield-check"
+                class="h-6 w-6 text-primary"
+              />
+              Безопасность PCI DSS
+            </div>
+          </template>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            Максимальный уровень защиты данных ваших клиентов и шифрования
+            транзакций.
+          </p>
+        </UCard>
 
-          <UDropdownMenu :items="items">
-            <UButton icon="i-lucide-plus" size="md" class="rounded-full" />
-          </UDropdownMenu>
-        </template>
-      </UDashboardNavbar>
+        <UCard>
+          <template #header>
+            <div
+              class="flex items-center gap-x-3 font-semibold text-neutral-900 dark:text-white"
+            >
+              <UIcon name="i-lucide-cpu" class="h-6 w-6 text-primary" />
+              Умный Антифрод
+            </div>
+          </template>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            Автоматическая блокировка мошеннических операций на основе ИИ.
+          </p>
+        </UCard>
 
-      <UDashboardToolbar>
-        <template #left>
-          <!-- NOTE: The `-ms-1` class is used to align with the `DashboardSidebarCollapse` button here. -->
-          <HomeDateRangePicker v-model="range" class="-ms-1" />
-
-          <HomePeriodSelect v-model="period" :range="range" />
-        </template>
-      </UDashboardToolbar>
-    </template>
-
-    <template #body>
-      <HomeStats :period="period" :range="range" />
-      <HomeChart :period="period" :range="range" />
-      <HomeSales :period="period" :range="range" />
-    </template>
-  </UDashboardPanel>
+        <UCard>
+          <template #header>
+            <div
+              class="flex items-center gap-x-3 font-semibold text-neutral-900 dark:text-white"
+            >
+              <UIcon name="i-lucide-banknotes" class="h-6 w-6 text-primary" />
+              Быстрый вывод
+            </div>
+          </template>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            Деньги поступают на ваш расчетный счет на следующий рабочий день.
+          </p>
+        </UCard>
+      </div>
+    </UContainer>
+  </div>
 </template>
+
+<style scoped>
+.saas-landing-page {
+  /* Растягиваем контейнер на всю высоту экрана за вычетом шапки */
+  min-height: calc(100vh - 80px);
+
+  /* Включаем Flexbox для выравнивания */
+  display: flex;
+  flex-direction: column;
+
+  /* Центрируем все внутренние контейнеры по вертикали и горизонтали */
+  justify-content: center;
+  align-items: center;
+
+  /* Добавляем внутренние отступы, чтобы контент не лип к краям на планшетах */
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+</style>

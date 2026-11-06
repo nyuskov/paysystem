@@ -1,15 +1,25 @@
 <script setup lang="ts">
-import type { Member } from '~/types'
+import type { Member } from "~/types";
 
-const { data: members } = await useFetch<Member[]>('/api/members', { default: () => [] })
+const { data: members } = await useFetch<Member[]>("/api/members", {
+  default: () => [],
+});
 
-const q = ref('')
+const q = ref("");
 
 const filteredMembers = computed(() => {
-  const search = q.value.toLowerCase()
+  const search = q.value.toLowerCase();
 
-  return members.value.filter(member => member.name.toLowerCase().includes(search) || member.username.toLowerCase().includes(search))
-})
+  return members.value.filter(
+    (member) =>
+      member.name.toLowerCase().includes(search) ||
+      member.username.toLowerCase().includes(search),
+  );
+});
+
+definePageMeta({
+  layout: "dashboard", // <- Привязываем сайдбар, который теперь в dashboard.vue
+});
 </script>
 
 <template>
@@ -21,14 +31,17 @@ const filteredMembers = computed(() => {
       orientation="horizontal"
       class="mb-4"
     >
-      <UButton
-        label="Invite people"
-        color="neutral"
-        class="w-fit lg:ms-auto"
-      />
+      <UButton label="Invite people" color="neutral" class="w-fit lg:ms-auto" />
     </UPageCard>
 
-    <UPageCard variant="subtle" :ui="{ container: 'p-0 sm:p-0 gap-y-0', wrapper: 'items-stretch', header: 'p-4 mb-0 border-b border-default' }">
+    <UPageCard
+      variant="subtle"
+      :ui="{
+        container: 'p-0 sm:p-0 gap-y-0',
+        wrapper: 'items-stretch',
+        header: 'p-4 mb-0 border-b border-default',
+      }"
+    >
       <template #header>
         <UInput
           v-model="q"
