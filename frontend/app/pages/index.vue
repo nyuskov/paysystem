@@ -1,4 +1,6 @@
 <script setup>
+const { data: response, error, pending } = await useFetch("/api/v1/home/");
+
 definePageMeta({
   layout: "default",
 });
@@ -6,6 +8,9 @@ definePageMeta({
 
 <template>
   <div class="saas-landing-page">
+    <div>
+      {{ response.message }}
+    </div>
     <!-- В v4 Hero-блок собирается из базовых компонентов -->
     <UContainer class="max-w-3xl mx-auto text-center">
       <h1

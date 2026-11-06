@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from api import router as api_router
 
 app = FastAPI()
 
@@ -19,6 +20,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(api_router)
+
 
 @app.middleware("http")
 async def set_secure_scheme(request, call_next):
@@ -27,8 +30,3 @@ async def set_secure_scheme(request, call_next):
         request.scope["scheme"] = "https"
     response = await call_next(request)
     return response
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}

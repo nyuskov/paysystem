@@ -43,6 +43,9 @@ services:
       - "traefik.http.routers.fastapi-secure.service=fastapi"
       # Указываем Traefik внутренний порт FastAPI
       - "traefik.http.services.fastapi.loadbalancer.server.port=80"
+    environment:
+      - MYPYPATH=/app/backend
+      - PYTHONPATH=/app/backend
 
   frontend:
     image: node:22-alpine
@@ -58,6 +61,8 @@ services:
       - NUXT_HOST=0.0.0.0
       - NUXT_PORT=3000
       - CHOKIDAR_USEPOLLING=true
+      # Куда Nuxt проксирует /api (SSR-запросы не выходят через Traefik)
+      - NUXT_API_PROXY_TARGET=http://backend:80
     # Добавляем vue-demi через запятую в список разрешенных билдов для pnpm
     # Разрешаем pnpm запускать скрипты всех необходимых Nuxt-зависимостей при старте контейнера
     command: sh -c "corepack enable && pnpm config set store-dir /pnpm-store && pnpm install --dangerously-allow-all-builds && pnpm dev --host 0.0.0.0 --port 3000"
